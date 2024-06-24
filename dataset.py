@@ -565,7 +565,6 @@ data = [
       ("1%", "Precision"),
       ("100mW", "Watt"),
       ("10kΩ", "Resistance"),
-      ("", "Watt"),
       ("", "Inductance"),
 
       ("", "Electricity")]
@@ -581,7 +580,6 @@ data = [
       ("1%", "Precision"),
       ("125mW", "Watt"),
       ("10kΩ", "Resistance"),
-      ("", "Watt"),
       ("", "Inductance"),
       ("", "Electricity")]
      ),
@@ -596,7 +594,6 @@ data = [
       ("1%", "Precision"),
       ("100mW", "Watt"),
       ("100kΩ", "Resistance"),
-      ("", "Watt"),
       ("", "Inductance"),
       ("", "Electricity")]
      ),
@@ -609,7 +606,6 @@ data = [
       ("1%", "Precision"),
       ("100mW", "Watt"),
       ("100kΩ", "Resistance"),
-      ("", "Watt"),
       ("", "Inductance"),
       ("", "Electricity")]
      ),
@@ -633,7 +629,6 @@ data = [
       ("5%", "Precision"),
       ("62.5mW", "Watt"),
       ("10kΩ", "Resistance"),
-      ("", "Watt"),
       ("", "Inductance"),
       ("", "Electricity")]
      ),
@@ -657,7 +652,6 @@ data = [
       ("1%", "Precision"),
       ("100mW", "Watt"),
       ("22Ω", "Resistance"),
-      ("", "Watt"),
       ("", "Inductance"),
       ("", "Electricity")]
      ),
@@ -1159,7 +1153,7 @@ ESD 封装： 0603
 描述:这款消费级P沟道MOSFET...
 功率(Pd):700mW
  """,
-     [("HXY MOSFET(华轩阳电子)", "Model"),
+     [("HXYMOSFET(华轩阳电子)", "Model"),
       ("SOT-23", "Package"),
       ("P沟道", "Type"),
       ("20V", "Voltage"),
@@ -1249,7 +1243,7 @@ ESD 封装： 0603
 品牌: CJ(江苏长电/长晶)
 封装: SOT-23
 描述: 丝印Y1
-晶体管类型: NPN
+Type: NPN
 集电极电流(Ic): 1.5A
 集射极击穿电压(Vceo): 25V
 功率(Pd): 300mW
@@ -1259,7 +1253,7 @@ ESD 封装： 0603
  """,
      [("CJ(江苏长电/长晶)", "Model"),
       ("SOT-23", "Package"),
-      ("NPN", "晶体管类型"),
+      ("NPN", "Type"),
       ("25V", "Voltage"),
       ("", "Cap"),
       ("", "Precision"),
@@ -1274,7 +1268,7 @@ ESD 封装： 0603
 品牌: CJ(江苏长电/长晶)
 封装: SOT-23
 描述: 丝印1A
-晶体管类型: NPN
+Type: NPN
 集电极电流(Ic): 200mA
 集射极击穿电压(Vceo): 40V
 功率(Pd): 200mW
@@ -1284,7 +1278,7 @@ ESD 封装： 0603
  """,
      [("CJ(江苏长电/长晶)", "Model"),
       ("SOT-23", "Package"),
-      ("NPN", "晶体管类型"),
+      ("NPN", "Type"),
       ("40V", "Voltage"),
       ("", "Cap"),
       ("", "Precision"),
@@ -1296,7 +1290,7 @@ ESD 封装： 0603
      ),
     ("""
  MMBTA56 R1 00001
-晶体管类型: PNP
+Type: PNP
 类目:三极管(BJT)
 品牌: PANJIT(强茂)
 集电极电流(Ic):500mA
@@ -1308,7 +1302,7 @@ ESD 封装： 0603
  """,
      [("PANJIT(强茂)", "Model"),
       ("SOT-23", "Package"),
-      ("PNP", "晶体管类型"),
+      ("PNP", "Type"),
       ("80V", "Voltage"),
       ("", "Cap"),
       ("", "Precision"),
@@ -1322,7 +1316,7 @@ ESD 封装： 0603
  2N3055
 品牌: JSMSEMI(杰盛微)
 封装: TO-3
-晶体管类型: NPN
+Type: NPN
 集电极电流(Ic): 15A
 集射极击穿电压(Vceo): 60V
 功率(Pd): 115W
@@ -1331,7 +1325,7 @@ ESD 封装： 0603
  """,
      [("JSMSEMI(杰盛微)", "Model"),
       ("TO-3", "Package"),
-      ("NPN", "晶体管类型"),
+      ("NPN", "Type"),
       ("60V", "Voltage"),
       ("", "Cap"),
       ("", "Precision"),

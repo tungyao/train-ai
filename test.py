@@ -1,57 +1,100 @@
+import jieba
 import torch
-from transformers import BertTokenizer
-import torch.nn as nn
-
-# 加载预训练的BERT tokenizer
-tokenizer = BertTokenizer.from_pretrained('bert-base-chinese')
-
-
-# 定义模型结构（必须和训练时一致）
-class BiLSTMModel(nn.Module):
-    def __init__(self, vocab_size, tagset_size, embedding_dim=128, hidden_dim=64):
-        super(BiLSTMModel, self).__init__()
-        self.embedding = nn.Embedding(vocab_size, embedding_dim)
-        self.lstm = nn.LSTM(embedding_dim, hidden_dim // 2, num_layers=1, bidirectional=True)
-        self.hidden2tag = nn.Linear(hidden_dim, tagset_size)
-
-    def forward(self, sentence):
-        embeds = self.embedding(sentence)
-        lstm_out, _ = self.lstm(embeds)
-        tag_space = self.hidden2tag(lstm_out)
-        tag_scores = torch.log_softmax(tag_space, dim=2)
-        return tag_scores
-
-
-# 加载数据集中的label map（必须和训练时一致）
-label_map = {"O": 0, "B-型号": 1, "I-型号": 2, "B-封装": 3, "I-封装": 4,
-             "B-类型": 5, "I-类型": 6, "B-电压": 7, "I-电压": 8,
-             "B-电容值": 9, "I-电容值": 10, "B-精度": 11, "I-精度": 12,
-             "B-电阻值": 13, "I-电阻值": 14, "B-功率": 15, "I-功率": 16,
-             "B-电感值": 17, "I-电感值": 18, "B-电流": 19, "I-电流": 20}
-
-# 加载模型
-vocab_size = len(tokenizer.vocab)
-tagset_size = len(label_map)
-model = BiLSTMModel(vocab_size, tagset_size)
-
-# 加载模型的状态字典
-model.load_state_dict(torch.load('field_extraction_model_state_dict.pth'))
-model.eval()
+from torch import nn, optim
+jieba.add_word("贴片电容")
+jieba.add_word("贴片电阻")
+jieba.add_word("贴片电感")
+jieba.add_word("电容值")
+jieba.add_word("电压")
+jieba.add_word("NPN")
+jieba.add_word("PNP")
+jieba.add_word("N沟道")
+jieba.add_word("P沟道")
+label2idx = {
+    "Model": 0,
+    "Package": 1,
+    "Type": 2,
+    "Voltage": 3,
+    "Cap": 4,
+    "Precision": 5,
+    "Resistance": 6,
+    "Watt": 7,
+    "Inductance": 8,
+    "Electricity": 9
+}
 
 
-# 定义预测函数
-def predict(model, tokenizer, text):
-    tokens = tokenizer.tokenize(text)
-    input_ids = torch.tensor(tokenizer.convert_tokens_to_ids(tokens)).unsqueeze(0)
+class TextCNN(nn.Module):
+    def __init__(self, embedding_dim, num_filters, num_classes, dropout):
+        super(TextCNN, self).__init__()
+        self.embedding = nn.Embedding(len(word2idx), embedding_dim)
+        self.conv = nn.Conv1d(in_channels=embedding_dim, out_channels=num_filters, kernel_size=3)
+        self.fc = nn.Linear(num_filters, num_classes)
+        # self.fc = nn.Linear(32 * (input_size // 4) * (input_size // 4), num_classes)
+        print("embedding_dim:", embedding_dim, "num_filters:", num_filters, "num_classes:", num_classes)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x):
+        x = self.embedding(x)  # (batch_size, seq_length, embedding_dim)
+        x = self.dropout(x)
+        x = self.fc(x)
+        return x
+
+
+
+
+def tokenize_text(text):
+    return list(jieba.lcut_for_search(text))
+
+
+from dataset import data
+
+for i in range(len(data)):
+    text, annotations_tuple = data[i]
+    text = text.replace('\n', '').replace('\r', '').replace('\t', '').replace(' ', '')
+    annotations_list = list(annotations_tuple)  # 将元组转换为列表
+    data[i] = (text, annotations_list)  # 用新的列表替换原来的元组
+
+vocab = set(value for _, annotations in data for value, _ in annotations)
+vocab = sorted(vocab)  # 排序以保持索引一致
+
+
+def word_to_idx(dataset):
+    word2idx = {"<PAD>": 0, "<UNK>": 1}
+    for text, labels in dataset:
+        for word in jieba.lcut(text):
+            if word not in word2idx:
+                word2idx[word] = len(word2idx)
+    return word2idx
+
+
+word2idx = word_to_idx(data)
+
+
+def predict(model, text):
+    words = tokenize_text(text)
+    MAX_LENGTH = len(vocab)
+
+    padded_words = words[:MAX_LENGTH] + ['<PAD>'] * (MAX_LENGTH - len(words))
+    word_indices = [word2idx.get(word, word2idx['<UNK>']) for word in padded_words]  # 假设word2idx是词语到索引的映射
+
+    # print(words , word_indices , label_positions)
+    # 转换为tensor
+    input_ids = torch.tensor(word_indices, dtype=torch.long)
+
     with torch.no_grad():
         tag_scores = model(input_ids)
-    _, predicted_labels = torch.max(tag_scores, dim=2)
+
+    print(tag_scores)
+    _, predicted_labels = torch.max(tag_scores,dim=1)
     predicted_labels = predicted_labels.squeeze().tolist()
-    labels = [list(label_map.keys())[label_id] for label_id in predicted_labels]
-    return list(zip(tokens, labels))
+    labels = [list(label2idx.keys())[label_id] for label_id in predicted_labels]
+    return list(zip(words, labels))
 
+model = TextCNN(158, 158, 10, 0.5)
+model.load_state_dict(torch.load("field_extraction_model_state_dict.pth"))
+model.eval()
 
-# 使用模型进行预测
 text = "原装正品0603贴片电容25V 100NF ±10% X7R CL10B104KA8NNNC 50只"
-predictions = predict(model, tokenizer, text)
+predictions = predict(model, text)
 print(predictions)
