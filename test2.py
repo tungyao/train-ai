@@ -1,32 +1,15 @@
 import jieba
 import torch
 from torch import nn, optim
-
 jieba.add_word("贴片电容")
 jieba.add_word("贴片电阻")
 jieba.add_word("贴片电感")
-jieba.add_word("MOS管")
-jieba.add_word("锂电池充电管理IC")
-jieba.add_word("贴片型铝电解电容")
-jieba.add_word("直插铝电解电容")
-jieba.add_word("钽电容")
-jieba.add_word("固态电容")
-jieba.add_word("固液混合铝电解电容器")
-jieba.add_word("厚膜电阻")
-jieba.add_word("稳压二极管")
-jieba.add_word("肖特基二极管")
-jieba.add_word("通用二极管")
-jieba.add_word("静电和浪涌保护(TVS/ESD)")
-jieba.add_word("N沟道")
-jieba.add_word("P沟道")
-jieba.add_word("场效应管(MOSFET)")
+jieba.add_word("电容值")
+jieba.add_word("电压")
 jieba.add_word("NPN")
 jieba.add_word("PNP")
-jieba.add_word("插件电容器")
-jieba.add_word("贴片二极管")
-jieba.add_word("贴片稳压二极管")
-jieba.add_word("贴片MOSFET")
-
+jieba.add_word("N沟道")
+jieba.add_word("P沟道")
 label2idx = {
     "Model": 0,
     "Package": 1,
@@ -58,8 +41,31 @@ class TextCNN(nn.Module):
         return x
 
 
+class TextRNN(nn.Module):
+    def __init__(self, vocab_size, embed_dim, hidden_dim, output_dim, n_layers, dropout=0.5):
+        super(TextRNN, self).__init__()
+        # 嵌入层：将词汇表中的索引转换为词向量
+        self.embedding = nn.Embedding(len(word2idx), embed_dim)
+        # LSTM层
+        self.rnn = nn.LSTM(embed_dim, hidden_dim, num_layers=n_layers,
+                           bidirectional=True, dropout=dropout)
+        # 全连接层，用于最后的分类
+        self.fc = nn.Linear(hidden_dim * 2, output_dim)  # 由于使用了双向LSTM，所以hidden_dim乘以2
+        # dropout层，防止过拟合
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, text):
+        # 将词索引通过嵌入层转换为词向量
+        x = self.embedding(text)
+        embedded = self.dropout(x)
+        # 通过LSTM层
+        outputs, (hidden, cell) = self.rnn(embedded)
+        # 使用最后时间步的隐藏状态进行分类
+        hidden = self.dropout(torch.cat((hidden[-2, :, :], hidden[-1, :, :]), dim=1))
+        # 通过全连接层得到最终的分类结果
+        return self.fc(hidden.squeeze(0))
+
 def tokenize_text(text):
-    text = text.replace('\n', '').replace('\r', '').replace('\t', '').replace(' ', '')
     return list(jieba.lcut_for_search(text))
 
 
@@ -78,7 +84,7 @@ vocab = sorted(vocab)  # 排序以保持索引一致
 def word_to_idx(dataset):
     word2idx = {"<PAD>": 0, "<UNK>": 1}
     for text, labels in dataset:
-        for word in jieba.lcut_for_search(text):
+        for word in jieba.lcut(text):
             if word not in word2idx:
                 word2idx[word] = len(word2idx)
     return word2idx
@@ -101,34 +107,22 @@ def predict(model, text):
     with torch.no_grad():
         tag_scores = model(input_ids)
 
-    pro, predicted_labels = torch.max(tag_scores, dim=1)
+    print(tag_scores)
+    _, predicted_labels = torch.max(tag_scores,dim=1)
     predicted_labels = predicted_labels.squeeze().tolist()
-
     labels = [list(label2idx.keys())[label_id] for label_id in predicted_labels]
-    pros = [pro_id.item() for pro_id in pro]
-    return list(zip(words, labels,pros))
+    return list(zip(words, labels))
 
 embedding_dim = len(vocab)
 num_filters = len(vocab)
 dropout = 0.1
 num_labels = len(label2idx)
 
-model = TextCNN(embedding_dim, num_filters, num_labels, dropout)
-
+model = TextRNN(vocab_size=len(vocab), embed_dim=embedding_dim, hidden_dim=64, output_dim=num_labels, n_layers=1,
+                dropout=dropout)
 model.load_state_dict(torch.load("field_extraction_model_state_dict.pth"))
 model.eval()
 
 text = "原装正品0603贴片电容25V 100NF ±10% X7R CL10B104KA8NNNC 50只"
-# text = """商品目录	贴片型铝电解电容
-# 容值	220uF
-# 精度	±20%
-# 额定电压	10V
-# 纹波电流	90mA@120Hz
-# 等效串联电阻	-
-# 电容体直径	6.3mm
-# 电容体长度	5.4mm
-# 工作寿命	2000hrs@105℃
-# 工作温度	-40℃~+105℃
-# 封装：SMD,D6.3xL5.4mm"""
 predictions = predict(model, text)
 print(predictions)
